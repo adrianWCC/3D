@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <title>Title</title>
+    <style>
+        *{box-sizing: border-box;margin: 0;padding: 0}
+        html,body{
+            width: 100%;
+            height: 100%;
+        }
+        #stage{
+            width:100%;
+            height:100%;
+            overflow: hidden;
+            -webkit-perspective:1000px;
+        }
+        #container{
+            width: 100%;
+            height:100%;
+            margin:0 auto;
+            border:1px solid #ddd;
+            position:relative;
+            left:0;
+            transform:rotatex(0deg) rotatey(0deg);
+            transform-style:preserve-3d;
+        }
+        #container div{
+            width:80%;
+            height:90%;
+            background:#e4393c;
+            position:absolute;
+            top:5%;
+            left: 10%;
+            display: none;
+        }
+        #container .current{
+            z-index: 9;
+            display: block;
+        }
+        #container .next{
+            display: block;
+        }
+        #container .prev{
+            display: block;
+        }
+
+    </style>
+</head>
+
+<body>
+<div id="stage">
+    <div id="container">
+        <div>1</div>
+        <div class="current">2</div>
+        <div>3</div>
+        <div>4</div>
+        <div>5</div>
+    </div>
+</div>
+<script src="http://apps.bdimg.com/libs/jquery/2.1.1/jquery.min.js"></script>
+<script>
+    $(".current").prev().addClass("prev");
+    $(".current").next().addClass("next");
+    document.addEventListener('touchstart', touchStart, false);
+    document.addEventListener('touchmove', touchMove, false);
+    document.addEventListener('touchend', touchEnd, false);
+    var startX= 0,endX= 0,rate=0;
+    var width = $("#container").find("div").width();
+    $(".prev").css({
+        "transform":"translatez(-100px) translatex("+(-width-width*0.1)+"px)"
+    });
+    $(".next").css({
+        "transform":"translatez(-100px) translatex("+(width+width*0.1)+"px)"
+    });
+    function touchStart(event){
+        var touch = event.touches[0];
+        startX = touch.pageX;
+    }
+    function touchMove(event){
+        var touch = event.touches[0];
+        endX = touch.pageX;
+        rate = Math.abs(endX-startX)/(width*1.1);
+        if((endX-startX)>0){//向右移动
+            $(".current").css({
+                "transform":"translatez("+(-rate*100)+"px) translatex("+width*rate*1.1+"px)"
+            });
+            $(".prev").css({
+                "transform":"translatez("+(-100+rate*100)+"px) translatex("+(-width*1.1+rate*1.1*width)+"px)"
+            });
+            $(".next").css({
+                "transform":"translatez(-100px) translatex("+(width*1.1+width*rate*1.1)+"px)"
+            })
+        }
+        if((endX-startX)<0){//向左移动
+            $(".current").css({
+                "transform":"translatez("+(-rate*100)+"px) translatex("+(-1.1*width*rate)+"px)"
+            });
+            $(".next").css({
+                "transform":"translatez("+(-100+rate*100)+"px) translatex("+(1.1*width-rate*1.1*width)+"px)"
+            });
+            $(".prev").css({
+                "transform":"translatez(-100px) translatex("+(-width*1.1-1.1*width*rate)+"px)"
+            })
+        }
+    }
+    function touchEnd(){
+        var transZ = -rate*100;
+        var transX = width*1.1*rate;
+        console.log(transX);
+        if((endX-startX)>100) {//向右移动(前一张)
+            timer = setInterval(function(){
+                transZ -= 5;
+                transX += width*1.1*5/100;
+                $(".current").css({
+                    "transform":"translatez("+transZ+"px) translatex("+transX+"px)"
+                });
+                $(".prev").css({
+                    "transform":"translatez("+(-100-transZ)+"px) translatex("+(-1.1*width+transX)+"px)"
+                });
+                $(".next").css({
+                    "transform":"translatez(-100px) translatex(0px)",
+                    "display":"none"
+                });
+                if(transZ<=-100 || transX>=width*1.1){
+                    clearInterval(timer);
+                    $(".current").css({
+                        "transform":"translatez("+(-100)+"px) translatex("+1.1*width+"px)"
+                    });
+                    $(".prev").css({
+                        "transform":"translatez(0px) translatex(0px)"
+                    });
+                    var length = $("#container").find("div").length;
+                    var index = $("#container div").index($(".current"));
+                    if(index==1){
+                        var ele = $("#container").find("div").eq(length-1);
+                        ele.remove();
+                        $("#container").prepend(ele);
+                        ele.css({
+                            "display":"block",
+                            "transform":"translatez(-100px) translatex("+(-1.1*width)+"px)"
+                        });
+                    }
+                    $(".prev").addClass("current").siblings().removeClass("current");
+                    $(".current").prev().addClass("prev").siblings().removeClass("prev");
+                    $(".current").next().addClass("next").siblings().removeClass("next");
+                    $(".prev").css({
+                        "display":"block",
+                        "transform":"translatez(-100px) translatex("+(-width*1.1)+"px)"
+                    });
+                }
+            },30);
+        }else if((endX-startX)>0&&(endX-startX)<=100){
+            timer = setInterval(function(){
+                transZ += 5;
+                transZ>0?transZ=0:transZ;
+                transX -= width*1.1*5/100;
+                transX<0?transX=0:transX;
+                $(".current").css({
+                    "transform":"translatez("+transZ+"px) translatex("+transX+"px)"
+                });
+                $(".prev").css({
+                    "transform":"translatez("+(-100-transZ)+"px) translatex("+(-1.1*width+transX)+"px)"
+                });
+                if(transZ>=0 || transX>=width*1.1){
+                    clearInterval(timer);
+                    $(".next").css({
+                        "transform":"translatez(-100px) translatex("+width*1.1+"px)"
+                    })
+                }
+            },30)
+        }
+        if((endX-startX)<-100){//向左移动(后一张)
+            timer = setInterval(function(){
+                transZ -= 5;
+                transX += width*1.1*5/100;
+                $(".current").css({
+                    "transform":"translatez("+transZ+"px) translatex("+(-transX)+"px)"
+                });
+                $(".next").css({
+                    "transform":"translatez("+(-100-transZ)+"px) translatex("+(width*1.1-transX)+"px)"
+                });
+                $(".prev").css({
+                    "transform":"translatez(-100px) translatex(0px)",
+                    "display":"none"
+                });
+                if(transZ>=0 || transX>=width*1.1){
+                    clearInterval(timer);
+                    $(".current").css({
+                        "transform":"translatez("+(-100)+"px) translatex("+(-width*1.1)+"px)"
+                    });
+                    $(".next").css({
+                        "transform":"translatez(0px) translatex(0px)"
+                    });
+                    var length = $("#container").find("div").length;
+                    var index = $("#container div").index($(".current"));
+                    console.log(length,index);
+                    if(index==(length-2)){
+                        var ele = $("#container").find("div").eq(0);
+                        ele.remove();
+                        $("#container").append(ele);
+                        ele.css({
+                            "display":"block",
+                            "transform":"translatez(-100px) translatex("+width*1.1+"px)"
+                        });
+                    }
+                    $(".next").addClass("current").siblings().removeClass("current");
+                    $(".current").next().addClass("next").siblings().removeClass("next");
+                    $(".current").prev().addClass("prev").siblings().removeClass("prev");
+                    $(".next").css({
+                        "display":"block",
+                        "transform":"translatez(-100px) translatex("+(width+width*0.1)+"px)"
+                    });
+                }
+            },30);
+        }else if((endX-startX)<0&&(endX-startX)>=-100){
+            timer = setInterval(function(){
+                transZ += 5;
+                transZ>0?transZ=0:transZ;
+                transX -= width*1.1*5/100;
+                transX<0?transX=0:transX;
+                $(".current").css({
+                    "transform":"translatez("+transZ+"px) translatex("+(-transX)+"px)"
+                });
+                $(".next").css({
+                    "transform":"translatez("+(-100-transZ)+"px) translatex("+(width*1.1-transX)+"px)"
+                });
+                if(transZ>=0 || transX>=width*1.1){
+                    clearInterval(timer);
+                    $(".prev").css({
+                        "transform":"translatez(-100px) translatex("+(-width*1.1)+"px)"
+                    })
+                }
+            },30)
+        }
+    }
+</script>
+</body>
+</html>
